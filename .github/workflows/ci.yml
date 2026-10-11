@@ -1,0 +1,25 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Syntax-check all JS
+        run: |
+          node --check bin/fd-dev.mjs
+          node --check canvas/mock-host.js
+          node --check test/smoke.mjs
+
+      - name: Smoke test (server + mock host router)
+        run: node test/smoke.mjs

@@ -1,0 +1,25 @@
+{
+  "name": "@fleekdash/devkit",
+  "version": "0.1.0",
+  "description": "Local dev canvas for FleekDash extensions — mock WordPress host, real SDK protocol, fixture data. No WordPress install required.",
+  "type": "module",
+  "bin": {
+    "fd-dev": "bin/fd-dev.mjs"
+  },
+  "scripts": {
+    "dev": "node bin/fd-dev.mjs",
+    "test": "node test/smoke.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT",
+  "files": [
+    "bin/",
+    "canvas/",
+    "mock-data/",
+    "sdk/",
+    "README.md",
+    "LICENSE"
+  ]
+}

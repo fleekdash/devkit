@@ -1,0 +1,9 @@
+{
+  "extension-starter": {
+    "welcome_text": "Hello from the dev canvas"
+  },
+  "excalidraw": {},
+  "maintenance-mode": {
+    "enabled": false
+  }
+}

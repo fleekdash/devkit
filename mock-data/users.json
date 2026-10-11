@@ -1,0 +1,18 @@
+[
+  {
+    "id": 1,
+    "name": "Daniel Admin",
+    "slug": "daniel",
+    "link": "http://localhost:4400/author/daniel/",
+    "roles": ["administrator"],
+    "avatar_urls": { "48": "https://www.gravatar.com/avatar/?d=mp&s=48" }
+  },
+  {
+    "id": 2,
+    "name": "Editor Example",
+    "slug": "editor",
+    "link": "http://localhost:4400/author/editor/",
+    "roles": ["editor"],
+    "avatar_urls": { "48": "https://www.gravatar.com/avatar/?d=mp&s=48" }
+  }
+]

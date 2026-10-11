@@ -1,0 +1,3 @@
+{
+  "css": ":root { --palette-light-background: #f4f5f8; --palette-light-foreground: #1c2130; --palette-light-primary: #5b4be0; --palette-light-muted: #e7e9f0; --palette-light-border: #d9dce4; --palette-dark-background: #0b0d12; --palette-dark-foreground: #e6e9f0; --palette-dark-primary: #7c6cf6; --palette-dark-muted: #1d212c; --palette-dark-border: #262b38; }"
+}

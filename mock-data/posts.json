@@ -1,0 +1,44 @@
+[
+  {
+    "id": 101,
+    "date": "2026-10-01T14:32:00",
+    "slug": "hello-fleekdash",
+    "status": "publish",
+    "type": "post",
+    "link": "http://localhost:4400/hello-fleekdash/",
+    "title": { "rendered": "Hello FleekDash" },
+    "content": { "rendered": "<p>First mock post body — enough text to look real in lists.</p>" },
+    "excerpt": { "rendered": "<p>First mock post body…</p>" },
+    "author": 1,
+    "featured_media": 0,
+    "categories": [1]
+  },
+  {
+    "id": 102,
+    "date": "2026-10-05T09:15:00",
+    "slug": "extending-the-hub",
+    "status": "draft",
+    "type": "post",
+    "link": "http://localhost:4400/extending-the-hub/",
+    "title": { "rendered": "Extending the Hub" },
+    "content": { "rendered": "<p>Draft post — shows the draft state in pickers.</p>" },
+    "excerpt": { "rendered": "<p>Draft post…</p>" },
+    "author": 1,
+    "featured_media": 0,
+    "categories": [2]
+  },
+  {
+    "id": 103,
+    "date": "2026-10-08T18:47:00",
+    "slug": "marketplace-preview",
+    "status": "future",
+    "type": "post",
+    "link": "http://localhost:4400/marketplace-preview/",
+    "title": { "rendered": "Marketplace preview" },
+    "content": { "rendered": "<p>Scheduled post for status variety.</p>" },
+    "excerpt": { "rendered": "<p>Scheduled post…</p>" },
+    "author": 2,
+    "featured_media": 0,
+    "categories": [1, 2]
+  }
+]

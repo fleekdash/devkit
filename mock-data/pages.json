@@ -1,0 +1,15 @@
+[
+  {
+    "id": 201,
+    "date": "2026-09-20T10:00:00",
+    "slug": "about",
+    "status": "publish",
+    "type": "page",
+    "link": "http://localhost:4400/about/",
+    "title": { "rendered": "About" },
+    "content": { "rendered": "<p>Mock page.</p>" },
+    "author": 1,
+    "parent": 0,
+    "menu_order": 0
+  }
+]
