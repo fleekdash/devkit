@@ -11,6 +11,11 @@ note below.
 
 Current copy: SDK v1.1.0 (FleekDash 2.6.7.x) + standalone `restNonce`
 (`_fleekdash_rest_nonce` URL param / `data-rest-nonce` attribute), from
-fleekdash/fleekdash#483, plus nonce-provenance re-init (rotated iframe
-`data-nonce`/`data-rest-nonce` attrs are re-read on every `init()`),
-from fleekdash/fleekdash#510 (issue #488).
+fleekdash/fleekdash#483, plus nonce-provenance re-init from
+fleekdash/fleekdash#510 (issue #488): each `init()` resolves
+`nonce`/`restNonce` by source — an explicit `userConfig` value wins and
+persists until the caller replaces it; otherwise the iframe
+`data-nonce`/`data-rest-nonce` attr (the live, host-rotatable
+credential) is re-read on every call; otherwise the URL param seeds the
+value and can go stale after an attribute rotation; a last-good store
+only undoes empty-spread wipes.
