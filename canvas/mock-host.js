@@ -43,14 +43,52 @@
       };
     }
 
+    function normalizeEndpoint(endpoint) {
+      return String(endpoint || "")
+        .replace(/^\/?wp-json/, "")
+        .replace(/\?.*$/, "")
+        .replace(/\/+$/, "");
+    }
+
     function wpRequest(endpoint, params) {
-      // Normalize: "/wp-json/wp/v2/posts?per_page=5" or "wp/v2/posts"
-      const clean = endpoint.replace(/^\/?wp-json/, "").replace(/\?.*$/, "");
+      const clean = normalizeEndpoint(endpoint);
+      // Fixture-provided exact routes win over the generic WP prefixes —
+      // e.g. mock-data/todo-system.json provides /todo-system/v1/bootstrap.
+      const custom = data.mockRoutes && data.mockRoutes[clean];
+      if (custom !== undefined) {
+        return typeof custom === "function" ? custom(params) : custom;
+      }
       const base = Object.keys(WP_ROUTES).find((r) => clean.startsWith(r));
       if (!base) return { items: [], _mock: `unmatched endpoint ${endpoint}` };
       const rows = data[WP_ROUTES[base]] || [];
       const perPage = Number(params?.per_page) || rows.length;
       return rows.slice(0, perPage);
+    }
+
+    /**
+     * Generic mutation echo: POST /x/tasks → { success, task: {...body, id} },
+     * PUT /x/tasks/42 → same with id 42, DELETE → { success, deleted: id }.
+     * Fixture templates (data.mockMutations[key]) fill fields the body omits.
+     */
+    function shapeMutation(reqData) {
+      const clean = normalizeEndpoint(reqData?.endpoint || "");
+      const method = String(reqData?.method || "POST").toUpperCase();
+      const segs = clean.split("/").filter(Boolean);
+      const last = segs[segs.length - 1] || "";
+      const numericTail = /^\d+$/.test(last);
+      if (method === "DELETE") {
+        return { success: true, deleted: numericTail ? Number(last) : true };
+      }
+      const resource = numericTail ? segs[segs.length - 2] : last;
+      const key = resource ? resource.replace(/s$/, "") : "";
+      if (!key) return { ok: true, _mock: "mutation acknowledged" };
+      const template = (data.mockMutations && data.mockMutations[key]) || {};
+      const entity = {
+        ...template,
+        id: numericTail ? Number(last) : Date.now() % 1000000,
+        ...(reqData.body || {}),
+      };
+      return { success: true, [key]: entity };
     }
 
     function handleMessage(event) {
@@ -83,10 +121,7 @@
           break;
 
         case "WP_DATA_MUTATION":
-          respond(source, requestId, messageType, {
-            ok: true,
-            _mock: "mutation acknowledged — no persistence in dev canvas",
-          });
+          respond(source, requestId, messageType, shapeMutation(reqData));
           break;
 
         case "SHOW_NOTIFICATION":

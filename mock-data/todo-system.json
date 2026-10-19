@@ -1,0 +1,129 @@
+{
+  "_comment": "Fixtures for the todo-system reference extension (fleekdash/extensions). mockRoutes keys are exact REST paths after the /wp-json prefix; mockMutations keys are singular resource names merged into mutation echoes.",
+  "mockRoutes": {
+    "/todo-system/v1/bootstrap": {
+      "success": true,
+      "projects": [
+        {
+          "id": 11,
+          "name": "Launch checklist",
+          "description": "Everything blocking the 1.0 launch.",
+          "color": "#2563eb",
+          "count": 3
+        },
+        {
+          "id": 12,
+          "name": "Content pipeline",
+          "description": "Posts and docs in flight.",
+          "color": "#059669",
+          "count": 1
+        }
+      ],
+      "tasks": [
+        {
+          "id": 101,
+          "title": "Draft the release notes",
+          "description": "Highlight extension SDK + marketplace.",
+          "project_id": 11,
+          "status": "in_progress",
+          "priority": "high",
+          "due_date": "2026-10-20",
+          "section": "Writing",
+          "sort_order": 1,
+          "assignee_ids": [1],
+          "linked_post_ids": [],
+          "linked_posts": [],
+          "created_at": "2026-10-10 09:00:00",
+          "updated_at": "2026-10-12 14:30:00"
+        },
+        {
+          "id": 102,
+          "title": "Record the onboarding video",
+          "description": "",
+          "project_id": 11,
+          "status": "todo",
+          "priority": "medium",
+          "due_date": "2026-10-24",
+          "section": "Media",
+          "sort_order": 2,
+          "assignee_ids": [1, 2],
+          "linked_post_ids": [],
+          "linked_posts": [],
+          "created_at": "2026-10-10 09:05:00",
+          "updated_at": "2026-10-10 09:05:00"
+        },
+        {
+          "id": 103,
+          "title": "Ship devkit canvas docs",
+          "description": "README + mock fixture contract.",
+          "project_id": 11,
+          "status": "done",
+          "priority": "none",
+          "due_date": "",
+          "section": "Docs",
+          "sort_order": 3,
+          "assignee_ids": [2],
+          "linked_post_ids": [],
+          "linked_posts": [],
+          "created_at": "2026-10-08 11:00:00",
+          "updated_at": "2026-10-11 16:00:00"
+        },
+        {
+          "id": 104,
+          "title": "Outline the extensions tutorial",
+          "description": "Use todo-system as the worked example.",
+          "project_id": 12,
+          "status": "blocked",
+          "priority": "urgent",
+          "due_date": "2026-10-30",
+          "section": "Drafts",
+          "sort_order": 4,
+          "assignee_ids": [],
+          "linked_post_ids": [],
+          "linked_posts": [],
+          "created_at": "2026-10-09 10:00:00",
+          "updated_at": "2026-10-13 08:15:00"
+        }
+      ],
+      "tasks_total": 4,
+      "tasks_truncated": false,
+      "users": [
+        {
+          "id": 1,
+          "name": "Dev Admin",
+          "email": "admin@example.test",
+          "avatar": "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&s=64"
+        },
+        {
+          "id": 2,
+          "name": "Casey Contributor",
+          "email": "casey@example.test",
+          "avatar": "https://www.gravatar.com/avatar/11111111111111111111111111111111?d=mp&s=64"
+        }
+      ],
+      "current_user_id": 1,
+      "admin_url": "/wp-admin/"
+    }
+  },
+  "mockMutations": {
+    "task": {
+      "description": "",
+      "project_id": 0,
+      "status": "todo",
+      "priority": "none",
+      "due_date": "",
+      "section": "Untitled section",
+      "sort_order": 0,
+      "assignee_ids": [],
+      "linked_post_ids": [],
+      "linked_posts": [],
+      "created_at": "2026-10-14 00:00:00",
+      "updated_at": "2026-10-14 00:00:00"
+    },
+    "project": {
+      "description": "",
+      "color": "#4573D2",
+      "count": 0
+    }
+  }
+}
