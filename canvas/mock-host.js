@@ -74,8 +74,10 @@
 
     /**
      * Mutation echo with WordPress-realistic shapes.
-     *   /wp/v2/*          → core REST shape: bare entity on POST/PUT,
-     *                       { deleted:true, previous:{id} } on DELETE.
+     *   /wp/v2/*          → core REST shape: bare entity on POST/PUT; DELETE
+     *                       without force returns the trashed entity (WP moves
+     *                       posts to trash), force=true returns
+     *                       { deleted:true, previous:<fixture entity> }.
      *   other namespaces  → the FleekDash convention: { success, <singular> }
      *   ID detection: last segment counts as an ID when it is numeric or the
      *   preceding segment is a plural collection (handles "abc" slugs too).
@@ -94,9 +96,22 @@
       const mutationId = hasIdTail && /^\d+$/.test(last) ? Number(last) : last;
 
       if (method === "DELETE") {
-        return isCore
-          ? { deleted: true, previous: { id: hasIdTail ? mutationId : null } }
-          : { success: true, deleted: hasIdTail ? mutationId : true };
+        if (isCore) {
+          const collection = Array.isArray(data[resource])
+            ? data[resource]
+            : [];
+          const prior =
+            collection.find((r) => String(r.id) === String(last)) || {
+              id: hasIdTail ? mutationId : null,
+            };
+          const force =
+            reqData?.params?.force === true ||
+            String(reqData?.params?.force) === "true";
+          return force
+            ? { deleted: true, previous: prior }
+            : { ...prior, status: "trash" };
+        }
+        return { success: true, deleted: hasIdTail ? mutationId : true };
       }
       const body = reqData?.body || {};
       const entity = {

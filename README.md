@@ -27,7 +27,7 @@ Opens `http://localhost:4400/` — a canvas page with:
 |---|---|
 | `INTEGRATION_READY` | `{theme, site, integration}` — palette vars applied by the real SDK |
 | `WP_DATA_REQUEST` | `/wp/v2/{posts,pages,users,categories}` → fixtures (`per_page` honored); extension `mockRoutes` exact paths win; other endpoints → `{items:[]}` |
-| `WP_DATA_MUTATION` | `/wp/v2/*` → core REST shapes (bare entity on write, `{deleted:true, previous}` on DELETE); other namespaces → `{success, <singular-resource>: {...template, ...body, id}}`; DELETE → `{success, deleted:<id>}` |
+| `WP_DATA_MUTATION` | `/wp/v2/*` → core REST shapes (bare entity on write; DELETE returns the trashed entity, or `{deleted:true, previous:<entity>}` with `force=true`); other namespaces → `{success, <singular-resource>: {...template, ...body, id}}`; DELETE → `{success, deleted:<id>}` |
 | `GET_INTEGRATION_SETTINGS` | `mock-data/settings.json[<integration_id>]` |
 | `GET_THEME_ASSETS` | current theme payload + empty asset lists |
 | `SHOW_NOTIFICATION` | toast in the canvas chrome |
