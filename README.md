@@ -1,57 +1,82 @@
-# @fleekdash/devkit — dev canvas
+# FleekDash Devkit
 
-Build and iterate on a FleekDash extension **without a WordPress install**. `fd-dev` serves a mock FleekDash host that embeds your extension's built page in an iframe and answers the real postMessage protocol with fixture data.
+**Build and iterate on a FleekDash extension without installing WordPress.**
 
-Your extension exercises the **real SDK** — `sdk/fleekdash-sdk.js` is vendored verbatim from the plugin. Only the parent side is mocked.
+`fd-dev` is a zero dependency dev server that plays the role of the FleekDash
+host: it embeds your extension's built page in an iframe and answers the real
+postMessage protocol with fixture data. You write code, refresh, and watch
+every SDK call happen live.
 
-## Usage
+The trick that makes it honest: your extension talks to the **real SDK**. The
+`sdk/fleekdash-sdk.js` file served to the iframe is vendored verbatim from the
+FleekDash plugin. Only the parent side of the conversation is mocked.
+
+## Quickstart
 
 ```bash
-# from your extension checkout (expects dist/pages/*.html or pages/*.html)
+# from your extension checkout (serves dist/pages/*.html or pages/*.html)
 npx github:fleekdash/devkit --ext .
 
-# or point anywhere
+# or point anywhere, on any port
 node bin/fd-dev.mjs --ext ../my-extension --port 4400
 ```
 
-Opens `http://localhost:4400/` — a canvas page with:
+Open `http://localhost:4400/` and you get a canvas page with:
 
-- your extension iframe (same `fleekdash_sdk_url` injection the real PHP does)
-- a live log of every `FLEEKDASH_MESSAGE` the extension sends
-- theme toggle (broadcasts `themeChange` exactly like the real host)
-- mock surfaces for notifications (toast), modals, navigation and badges
+- your extension running in an iframe, wired with the same
+  `fleekdash_sdk_url` injection the real PHP host performs
+- a live log of every `FLEEKDASH_MESSAGE` your extension sends
+- a theme toggle that broadcasts `themeChange` exactly like the real host
+- mock surfaces for notifications (toasts), modals, navigation and menu badges
+
+This is the fastest possible loop for extension UI work: no database, no PHP,
+no auth, instant reload.
 
 ## What the mock answers
 
 | SDK call | Mock behavior |
 |---|---|
-| `INTEGRATION_READY` | `{theme, site, integration}` — palette vars applied by the real SDK |
-| `WP_DATA_REQUEST` | `/wp/v2/{posts,pages,users,categories}` → fixtures (`per_page` honored); extension `mockRoutes` exact paths win; other endpoints → `{items:[]}` |
-| `WP_DATA_MUTATION` | `/wp/v2/*` → core REST shapes (bare entity on write; DELETE returns the trashed entity, or `{deleted:true, previous:<entity>}` with `force=true`); other namespaces → `{success, <singular-resource>: {...template, ...body, id}}`; DELETE → `{success, deleted:<id>}` |
-| `GET_INTEGRATION_SETTINGS` | `mock-data/settings.json[<integration_id>]` |
-| `GET_THEME_ASSETS` | current theme payload + empty asset lists |
-| `SHOW_NOTIFICATION` | toast in the canvas chrome |
-| `OPEN_MODAL` / `NAVIGATE` / `UPDATE_MENU_BADGE` / `LOG_MESSAGE` | rendered/logged in the canvas |
+| `INTEGRATION_READY` | `{theme, site, integration}` with palette variables the real SDK applies |
+| `WP_DATA_REQUEST` | `/wp/v2/{posts,pages,users,categories}` served from fixtures (`per_page` honored); your extension's `mockRoutes` exact paths win; other endpoints return `{items:[]}` |
+| `WP_DATA_MUTATION` | `/wp/v2/*` gets core REST shapes (bare entity on write; DELETE returns the trashed entity, or `{deleted:true, previous:<entity>}` with `force=true`); other namespaces get `{success, <singular-resource>: {...template, ...body, id}}`; DELETE gets `{success, deleted:<id>}` |
+| `GET_INTEGRATION_SETTINGS` | served from `mock-data/settings.json[<integration_id>]` |
+| `GET_THEME_ASSETS` | current theme payload plus empty asset lists |
+| `SHOW_NOTIFICATION` | rendered as a toast in the canvas chrome |
+| `OPEN_MODAL` / `NAVIGATE` / `UPDATE_MENU_BADGE` / `LOG_MESSAGE` | rendered or logged in the canvas |
 
-Fixtures live in `mock-data/*.json` — edit freely; the canvas refetches on reload. An extension can ship its own `<ext>/mock-data/*.json` (advertised via `/mock/manifest.json`) — hoist custom routes with `"mockRoutes": {"/x/v1/path": {...}}` and mutation templates with `"mockMutations": {"task": {...}}`; see `mock-data/todo-system.json`.
+## Your own fixture data
 
-## Scope — what this is / is not
+Fixtures live in `mock-data/*.json`: posts, pages, users, categories, site
+info, theme palette, per-integration settings. Edit freely; the canvas
+refetches on reload.
 
-**Is:** a fast loop for iframe-side UI work — SDK calls, theme handling, settings reads, notifications.
+An extension can also ship its own `<ext>/mock-data/*.json`, advertised via
+`/mock/manifest.json`. Custom request routes go in
+`"mockRoutes": {"/x/v1/path": {...}}` and mutation response templates in
+`"mockMutations": {"task": {...}}`. See `mock-data/todo-system.json` for a
+worked example matching the Task System extension.
 
-**Is not:** a WordPress. No REST API, no PHP, no auth, no persistence. For real-WP testing, install the extension on a dev site (see [extension-starter](https://github.com/fleekdash/extension-starter)).
+## What this is, and what it is not
+
+**Is:** a fast loop for iframe side work. SDK calls, theme handling, settings
+reads, notifications, navigation requests, error surfaces.
+
+**Is not:** a WordPress. There is no REST API, no PHP runtime, no auth, no
+persistence. When you want the genuine host, install the extension on a dev
+site; the [extension-starter](https://github.com/fleekdash/extension-starter)
+README covers that path.
 
 ## Structure
 
 ```
-bin/fd-dev.mjs        zero-dep Node server (canvas + ext static + mock fixtures)
-canvas/index.html     mock host chrome (header, theme toggle, SDK call log)
-canvas/mock-host.js   parent-side protocol router (also node-requireable for tests)
-sdk/                  vendored real fleekdash-sdk.js — see sdk/SYNC.md
+bin/fd-dev.mjs        zero-dep Node server (canvas + ext statics + fixtures)
+canvas/index.html     mock host chrome: header, theme toggle, SDK call log
+canvas/mock-host.js   parent side protocol router (also requireable in tests)
+sdk/                  vendored real fleekdash-sdk.js (see sdk/SYNC.md)
 mock-data/*.json      fixtures: site, posts, pages, users, categories, settings, palette
 test/smoke.mjs        server surface + protocol router assertions
 ```
 
 ## License
 
-MIT — dev tooling, not WP-distributed code.
+MIT. This is dev tooling, not WordPress distributed code.

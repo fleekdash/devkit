@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * fd-dev — zero-dependency dev server for FleekDash extensions.
+ * fd-dev - zero-dependency dev server for FleekDash extensions.
  *
  * Serves a mock FleekDash host page that embeds your extension's built page
  * in an iframe and answers the real postMessage protocol with fixture data.
@@ -56,7 +56,7 @@ async function resolveExtEntry() {
   if (explicit) return explicit;
 
   // Built output wins: Vite extensions keep an unbuilt source page under
-  // pages/ that references /src/*.tsx — unusable in the browser.
+  // pages/ that references /src/*.tsx - unusable in the browser.
   const candidates = [join(EXT_DIR, "dist", "pages"), join(EXT_DIR, "pages")];
   for (const dir of candidates) {
     if (await exists(dir)) {
