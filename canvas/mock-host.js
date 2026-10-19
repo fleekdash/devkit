@@ -1,5 +1,5 @@
 /**
- * Mock FleekDash host — parent-side implementation of the iframe postMessage
+ * Mock FleekDash host - parent-side implementation of the iframe postMessage
  * protocol, answering with fixture data instead of a real WordPress.
  *
  * Protocol (mirrors includes/MessageBus + public/sdk/fleekdash-sdk.js):
@@ -52,7 +52,7 @@
 
     function wpRequest(endpoint, params) {
       const clean = normalizeEndpoint(endpoint);
-      // Fixture-provided exact routes win over the generic WP prefixes —
+      // Fixture-provided exact routes win over the generic WP prefixes -
       // e.g. mock-data/todo-system.json provides /todo-system/v1/bootstrap.
       const custom = data.mockRoutes && data.mockRoutes[clean];
       if (custom !== undefined) {
