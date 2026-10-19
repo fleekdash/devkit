@@ -294,6 +294,22 @@
   };
 
   /**
+   * Nonce provenance (fleekdash/fleekdash#488): each credential records
+   * where it came from so re-init can apply the right refresh policy -
+   * explicit values persist until the caller replaces them, attribute
+   * values refresh every init, URL values are pinned bootstrap seeds.
+   * The `*Source`/`*Value` pairs are held apart from `config` because a
+   * spread can overwrite `config.nonce`/`config.restNonce` with an
+   * empty value (e.g. `nonce: undefined`).
+   */
+  let nonceSource = null;
+  let explicitNonce = null;
+  let lastGoodNonce = null;
+  let restNonceSource = null;
+  let explicitRestNonce = null;
+  let lastGoodRestNonce = null;
+
+  /**
    * Event listeners registry
    */
   const eventListeners = new Map();
@@ -529,6 +545,11 @@
    * keep working in dev (`?_fleekdash_nonce=<wp_rest nonce>`).
    */
   function resolveStandaloneRestNonce() {
+    if (restNonceSource === "explicit" && !config.restNonce) {
+      // The caller deliberately cleared the credential (`restNonce:
+      // null`/"") - never substitute another nonce back in.
+      return null;
+    }
     const params = new URLSearchParams(window.location.search);
     return (
       config.restNonce ||
@@ -740,22 +761,76 @@
     beginThemeHold();
     config = { ...config, ...userConfig };
 
-    // Get nonce from URL query parameter (passed by FleekDash)
+    // Nonce resolution by provenance, on every init()
+    // (fleekdash/fleekdash#488):
+    //   - explicit userConfig.* — replaces any source, then persists
+    //     until the caller supplies a new value.
+    //   - iframe data attribute — the live credential: re-read EVERY
+    //     init so a host rotation between inits propagates (the old
+    //     `|| config.nonce` fallback kept the first value forever).
+    //   - URL param — the bootstrap seed: the iframe location cannot
+    //     change post-load, so it goes stale once the host rotates the
+    //     attribute; restored only to undo an empty-spread wipe.
     const urlParams = new URLSearchParams(window.location.search);
-    config.nonce = urlParams.get("_fleekdash_nonce") || config.nonce;
-    // wp_rest nonce for standalone REST calls (separate param - the bus
-    // nonce above is a different action and fails X-WP-Nonce checks).
-    config.restNonce =
-      urlParams.get("_fleekdash_rest_nonce") || config.restNonce;
-
     const iframe = window.frameElement;
 
-    // Fallback: try from iframe data attribute
-    if (!config.nonce && iframe) {
-      config.nonce = iframe.getAttribute("data-nonce");
+    const urlNonce = urlParams.get("_fleekdash_nonce");
+    const attrNonce = iframe && iframe.getAttribute("data-nonce");
+    // `undefined` means "not supplied" (absent field or empty spread);
+    // `null`/"" are explicit values - they deliberately clear the
+    // credential, and the explicit source keeps them pinned until the
+    // caller supplies another value.
+    if (userConfig && "nonce" in userConfig && userConfig.nonce !== undefined) {
+      config.nonce = userConfig.nonce;
+      explicitNonce = userConfig.nonce;
+      nonceSource = "explicit";
+      lastGoodNonce = userConfig.nonce || lastGoodNonce;
+    } else if (nonceSource === "explicit") {
+      config.nonce = explicitNonce;
+    } else if (attrNonce) {
+      config.nonce = attrNonce;
+      nonceSource = "attr";
+      lastGoodNonce = attrNonce;
+    } else if (nonceSource === "attr" || nonceSource === "url") {
+      // The last resolved value is never older than the URL seed: keep
+      // it when the live source disappears instead of downgrading.
+      config.nonce = lastGoodNonce;
+    } else if (urlNonce) {
+      config.nonce = urlNonce;
+      nonceSource = "url";
+      lastGoodNonce = urlNonce;
+    } else if (!config.nonce && lastGoodNonce) {
+      config.nonce = lastGoodNonce;
     }
-    if (!config.restNonce && iframe) {
-      config.restNonce = iframe.getAttribute("data-rest-nonce");
+
+    // wp_rest nonce for standalone REST calls (separate action - the
+    // bus nonce fails X-WP-Nonce checks). Same provenance rules: the
+    // host rotates it through the attribute, so it must refresh too.
+    const urlRestNonce = urlParams.get("_fleekdash_rest_nonce");
+    const attrRestNonce = iframe && iframe.getAttribute("data-rest-nonce");
+    if (
+      userConfig &&
+      "restNonce" in userConfig &&
+      userConfig.restNonce !== undefined
+    ) {
+      config.restNonce = userConfig.restNonce;
+      explicitRestNonce = userConfig.restNonce;
+      restNonceSource = "explicit";
+      lastGoodRestNonce = userConfig.restNonce || lastGoodRestNonce;
+    } else if (restNonceSource === "explicit") {
+      config.restNonce = explicitRestNonce;
+    } else if (attrRestNonce) {
+      config.restNonce = attrRestNonce;
+      restNonceSource = "attr";
+      lastGoodRestNonce = attrRestNonce;
+    } else if (restNonceSource === "attr" || restNonceSource === "url") {
+      config.restNonce = lastGoodRestNonce;
+    } else if (urlRestNonce) {
+      config.restNonce = urlRestNonce;
+      restNonceSource = "url";
+      lastGoodRestNonce = urlRestNonce;
+    } else if (!config.restNonce && lastGoodRestNonce) {
+      config.restNonce = lastGoodRestNonce;
     }
 
     applyIntegrationContentPadding(iframe);
