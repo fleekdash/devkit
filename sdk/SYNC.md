@@ -18,4 +18,5 @@ persists until the caller replaces it; otherwise the iframe
 `data-nonce`/`data-rest-nonce` attr (the live, host-rotatable
 credential) is re-read on every call; otherwise the URL param seeds the
 value and can go stale after an attribute rotation; a last-good store
-only undoes empty-spread wipes.
+restores the most recent resolved value when the live source
+disappears or a spread wipes the field.

@@ -782,7 +782,9 @@
       config.nonce = attrNonce;
       nonceSource = "attr";
       lastGoodNonce = attrNonce;
-    } else if (nonceSource === "url") {
+    } else if (nonceSource === "attr" || nonceSource === "url") {
+      // The last resolved value is never older than the URL seed: keep
+      // it when the live source disappears instead of downgrading.
       config.nonce = lastGoodNonce;
     } else if (urlNonce) {
       config.nonce = urlNonce;
@@ -808,7 +810,7 @@
       config.restNonce = attrRestNonce;
       restNonceSource = "attr";
       lastGoodRestNonce = attrRestNonce;
-    } else if (restNonceSource === "url") {
+    } else if (restNonceSource === "attr" || restNonceSource === "url") {
       config.restNonce = lastGoodRestNonce;
     } else if (urlRestNonce) {
       config.restNonce = urlRestNonce;
