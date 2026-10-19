@@ -65,30 +65,45 @@
       return rows.slice(0, perPage);
     }
 
+    // Naive singularize for resource keys: categories → category, tasks → task.
+    function singularize(resource) {
+      return resource.endsWith("ies")
+        ? resource.slice(0, -3) + "y"
+        : resource.replace(/s$/, "");
+    }
+
     /**
-     * Generic mutation echo: POST /x/tasks → { success, task: {...body, id} },
-     * PUT /x/tasks/42 → same with id 42, DELETE → { success, deleted: id }.
-     * Fixture templates (data.mockMutations[key]) fill fields the body omits.
+     * Mutation echo with WordPress-realistic shapes.
+     *   /wp/v2/*          → core REST shape: bare entity on POST/PUT,
+     *                       { deleted:true, previous:{id} } on DELETE.
+     *   other namespaces  → the FleekDash convention: { success, <singular> }
+     *   ID detection: last segment counts as an ID when it is numeric or the
+     *   preceding segment is a plural collection (handles "abc" slugs too).
      */
     function shapeMutation(reqData) {
       const clean = normalizeEndpoint(reqData?.endpoint || "");
       const method = String(reqData?.method || "POST").toUpperCase();
       const segs = clean.split("/").filter(Boolean);
       const last = segs[segs.length - 1] || "";
-      const numericTail = /^\d+$/.test(last);
+      const penultimate = segs[segs.length - 2] || "";
+      const isCore = segs[0] === "wp" && segs[1] === "v2";
+      const hasIdTail =
+        segs.length > 1 && (/^\d+$/.test(last) || /s$/.test(penultimate));
+      const resource = hasIdTail ? penultimate : last;
+      const key = resource ? singularize(resource) : "";
+
       if (method === "DELETE") {
-        return { success: true, deleted: numericTail ? Number(last) : true };
+        return isCore
+          ? { deleted: true, previous: { id: hasIdTail ? last : null } }
+          : { success: true, deleted: hasIdTail ? last : true };
       }
-      const resource = numericTail ? segs[segs.length - 2] : last;
-      const key = resource ? resource.replace(/s$/, "") : "";
-      if (!key) return { ok: true, _mock: "mutation acknowledged" };
-      const template = (data.mockMutations && data.mockMutations[key]) || {};
+      const body = reqData?.body || {};
       const entity = {
-        ...template,
-        id: numericTail ? Number(last) : Date.now() % 1000000,
-        ...(reqData.body || {}),
+        ...(data.mockMutations?.[key] || {}),
+        id: hasIdTail ? last : Date.now() % 1000000,
+        ...body,
       };
-      return { success: true, [key]: entity };
+      return isCore ? entity : { success: true, [key]: entity };
     }
 
     function handleMessage(event) {

@@ -26,14 +26,14 @@ Opens `http://localhost:4400/` — a canvas page with:
 | SDK call | Mock behavior |
 |---|---|
 | `INTEGRATION_READY` | `{theme, site, integration}` — palette vars applied by the real SDK |
-| `WP_DATA_REQUEST` | `/wp/v2/{posts,pages,users,categories}` → fixtures (`per_page` honored); other endpoints → `{items:[]}` |
-| `WP_DATA_MUTATION` | `{ok:true}` — acknowledged, not persisted |
+| `WP_DATA_REQUEST` | `/wp/v2/{posts,pages,users,categories}` → fixtures (`per_page` honored); extension `mockRoutes` exact paths win; other endpoints → `{items:[]}` |
+| `WP_DATA_MUTATION` | `/wp/v2/*` → core REST shapes (bare entity on write, `{deleted:true, previous}` on DELETE); other namespaces → `{success, <singular-resource>: {...template, ...body, id}}`; DELETE → `{success, deleted:<id>}` |
 | `GET_INTEGRATION_SETTINGS` | `mock-data/settings.json[<integration_id>]` |
 | `GET_THEME_ASSETS` | current theme payload + empty asset lists |
 | `SHOW_NOTIFICATION` | toast in the canvas chrome |
 | `OPEN_MODAL` / `NAVIGATE` / `UPDATE_MENU_BADGE` / `LOG_MESSAGE` | rendered/logged in the canvas |
 
-Fixtures live in `mock-data/*.json` — edit freely; the canvas refetches on reload.
+Fixtures live in `mock-data/*.json` — edit freely; the canvas refetches on reload. An extension can ship its own `<ext>/mock-data/*.json` (advertised via `/mock/manifest.json`) — hoist custom routes with `"mockRoutes": {"/x/v1/path": {...}}` and mutation templates with `"mockMutations": {"task": {...}}`; see `mock-data/todo-system.json`.
 
 ## Scope — what this is / is not
 
