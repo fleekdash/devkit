@@ -9,4 +9,6 @@ iframe-side SDK — the mock lives only in `canvas/mock-host.js` (the parent
 side). When the runtime SDK changes, re-copy this file and bump the version
 note below.
 
-Current copy: SDK v1.1.0 (FleekDash 2.6.7.x).
+Current copy: SDK v1.1.0 (FleekDash 2.6.7.x) + standalone `restNonce`
+(`_fleekdash_rest_nonce` URL param / `data-rest-nonce` attribute) —
+fleekdash/fleekdash#483.

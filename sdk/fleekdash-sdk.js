@@ -289,6 +289,7 @@
   let config = {
     integration_id: null,
     nonce: null,
+    restNonce: null,
     debug: false,
   };
 
@@ -519,14 +520,33 @@
   /**
    * Fetch WordPress REST data when the page is opened outside FleekDash (no MessageBus).
    */
-  async function fetchWordPressDataStandalone(endpoint, params = {}) {
-    const nonce =
+  /**
+   * Resolve the nonce for standalone REST calls. The MessageBus nonce
+   * (`_fleekdash_nonce`) authenticates postMessage traffic only — it is NOT a
+   * wp_rest nonce and cannot satisfy X-WP-Nonce. The host injects a real
+   * wp_rest nonce as `_fleekdash_rest_nonce` (or the iframe `data-rest-nonce`
+   * attribute); when absent we fall back so manually supplied wp_rest nonces
+   * keep working in dev (`?_fleekdash_nonce=<wp_rest nonce>`).
+   */
+  function resolveStandaloneRestNonce() {
+    const params = new URLSearchParams(window.location.search);
+    return (
+      config.restNonce ||
+      params.get("_fleekdash_rest_nonce") ||
       config.nonce ||
-      new URLSearchParams(window.location.search).get("_fleekdash_nonce");
+      params.get("_fleekdash_nonce")
+    );
+  }
+
+  /**
+   * Fetch WordPress REST data when the page is opened outside FleekDash (no MessageBus).
+   */
+  async function fetchWordPressDataStandalone(endpoint, params = {}) {
+    const nonce = resolveStandaloneRestNonce();
 
     if (!nonce) {
       throw new Error(
-        "WordPress REST nonce missing. Open via FleekDash or add ?_fleekdash_nonce= to the URL.",
+        "WordPress REST nonce missing. Open via FleekDash or add ?_fleekdash_rest_nonce= to the URL.",
       );
     }
 
@@ -565,13 +585,11 @@
     body,
     params = {},
   ) {
-    const nonce =
-      config.nonce ||
-      new URLSearchParams(window.location.search).get("_fleekdash_nonce");
+    const nonce = resolveStandaloneRestNonce();
 
     if (!nonce) {
       throw new Error(
-        "WordPress REST nonce missing. Open via FleekDash or add ?_fleekdash_nonce= to the URL.",
+        "WordPress REST nonce missing. Open via FleekDash or add ?_fleekdash_rest_nonce= to the URL.",
       );
     }
 
@@ -725,12 +743,18 @@
     // Get nonce from URL query parameter (passed by FleekDash)
     const urlParams = new URLSearchParams(window.location.search);
     config.nonce = urlParams.get("_fleekdash_nonce");
+    // wp_rest nonce for standalone REST calls (separate param — the bus
+    // nonce above is a different action and fails X-WP-Nonce checks).
+    config.restNonce = urlParams.get("_fleekdash_rest_nonce");
 
     const iframe = window.frameElement;
 
     // Fallback: try from iframe data attribute
     if (!config.nonce && iframe) {
       config.nonce = iframe.getAttribute("data-nonce");
+    }
+    if (!config.restNonce && iframe) {
+      config.restNonce = iframe.getAttribute("data-rest-nonce");
     }
 
     applyIntegrationContentPadding(iframe);
