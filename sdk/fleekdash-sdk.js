@@ -545,6 +545,11 @@
    * keep working in dev (`?_fleekdash_nonce=<wp_rest nonce>`).
    */
   function resolveStandaloneRestNonce() {
+    if (restNonceSource === "explicit" && !config.restNonce) {
+      // The caller deliberately cleared the credential (`restNonce:
+      // null`/"") - never substitute another nonce back in.
+      return null;
+    }
     const params = new URLSearchParams(window.location.search);
     return (
       config.restNonce ||
