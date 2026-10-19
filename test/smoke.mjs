@@ -1,5 +1,5 @@
 /**
- * Smoke test — starts fd-dev against a synthetic extension dir and asserts
+ * Smoke test - starts fd-dev against a synthetic extension dir and asserts
  * the server surface + the mock host message router (node side).
  */
 import { spawn } from "node:child_process";

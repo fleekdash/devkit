@@ -1,7 +1,7 @@
 {
   "name": "@fleekdash/devkit",
   "version": "0.1.0",
-  "description": "Local dev canvas for FleekDash extensions — mock WordPress host, real SDK protocol, fixture data. No WordPress install required.",
+  "description": "Local dev canvas for FleekDash extensions: mock WordPress host, real SDK protocol, fixture data. No WordPress install required.",
   "type": "module",
   "bin": {
     "fd-dev": "bin/fd-dev.mjs"
