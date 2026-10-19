@@ -115,7 +115,23 @@ const server = createServer(async (req, res) => {
   }
   if (path.startsWith("/canvas/")) return sendFile(res, join(ROOT, "canvas"), path.slice(8));
   if (path.startsWith("/sdk/")) return sendFile(res, join(ROOT, "sdk"), path.slice(5));
-  if (path.startsWith("/mock/")) return sendFile(res, join(ROOT, "mock-data"), path.slice(6));
+  if (path === "/mock/manifest.json") {
+    let fixtures = [];
+    try {
+      fixtures = (await readdir(join(EXT_DIR, "mock-data"))).filter(
+        (name) => name.endsWith(".json") && !name.includes("/") && !name.includes("\\")
+      );
+    } catch {}
+    res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" });
+    res.end(JSON.stringify(fixtures.map((name) => name.slice(0, -5))));
+    return;
+  }
+  if (path.startsWith("/mock/")) {
+    const name = path.slice(6);
+    const extFixture = join(EXT_DIR, "mock-data", name);
+    if (await exists(extFixture)) return sendFile(res, join(EXT_DIR, "mock-data"), name);
+    return sendFile(res, join(ROOT, "mock-data"), name);
+  }
   if (path.startsWith("/ext/")) return sendFile(res, EXT_DIR, path.slice(5));
 
   res.writeHead(404).end("Not found: " + path);

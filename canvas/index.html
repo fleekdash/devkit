@@ -56,7 +56,13 @@
   document.getElementById("src-label").textContent = iframe.getAttribute("src");
 
   const data = {};
-  for (const name of ["site", "posts", "pages", "users", "categories", "settings", "palette", "todo-system"]) {
+  let extensionFixtures = [];
+  try { extensionFixtures = await (await fetch("/mock/manifest.json")).json(); } catch {}
+  const fixtureNames = [...new Set([
+    "site", "posts", "pages", "users", "categories", "settings", "palette", "todo-system",
+    ...extensionFixtures,
+  ])];
+  for (const name of fixtureNames) {
     try {
       data[name] = await (await fetch("/mock/" + name + ".json")).json();
     } catch { data[name] = name === "settings" ? {} : []; }
@@ -67,8 +73,8 @@
   for (const name of Object.keys(data)) {
     const fixture = data[name];
     if (fixture && typeof fixture === "object") {
-      if (fixture.mockRoutes) data.mockRoutes = { ...fixture.mockRoutes, ...data.mockRoutes };
-      if (fixture.mockMutations) data.mockMutations = { ...fixture.mockMutations, ...data.mockMutations };
+      if (fixture.mockRoutes) data.mockRoutes = { ...data.mockRoutes, ...fixture.mockRoutes };
+      if (fixture.mockMutations) data.mockMutations = { ...data.mockMutations, ...fixture.mockMutations };
     }
   }
 
