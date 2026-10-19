@@ -771,11 +771,15 @@
 
     const urlNonce = urlParams.get("_fleekdash_nonce");
     const attrNonce = iframe && iframe.getAttribute("data-nonce");
-    if (userConfig && userConfig.nonce) {
+    // `undefined` means "not supplied" (absent field or empty spread);
+    // `null`/"" are explicit values - they deliberately clear the
+    // credential, and the explicit source keeps them pinned until the
+    // caller supplies another value.
+    if (userConfig && "nonce" in userConfig && userConfig.nonce !== undefined) {
       config.nonce = userConfig.nonce;
       explicitNonce = userConfig.nonce;
       nonceSource = "explicit";
-      lastGoodNonce = userConfig.nonce;
+      lastGoodNonce = userConfig.nonce || lastGoodNonce;
     } else if (nonceSource === "explicit") {
       config.nonce = explicitNonce;
     } else if (attrNonce) {
@@ -799,11 +803,15 @@
     // host rotates it through the attribute, so it must refresh too.
     const urlRestNonce = urlParams.get("_fleekdash_rest_nonce");
     const attrRestNonce = iframe && iframe.getAttribute("data-rest-nonce");
-    if (userConfig && userConfig.restNonce) {
+    if (
+      userConfig &&
+      "restNonce" in userConfig &&
+      userConfig.restNonce !== undefined
+    ) {
       config.restNonce = userConfig.restNonce;
       explicitRestNonce = userConfig.restNonce;
       restNonceSource = "explicit";
-      lastGoodRestNonce = userConfig.restNonce;
+      lastGoodRestNonce = userConfig.restNonce || lastGoodRestNonce;
     } else if (restNonceSource === "explicit") {
       config.restNonce = explicitRestNonce;
     } else if (attrRestNonce) {
