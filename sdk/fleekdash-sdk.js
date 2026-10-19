@@ -294,14 +294,19 @@
   };
 
   /**
-   * URL-supplied nonces, pinned for the document's lifetime. Kept apart
-   * from `config` because a later init() spread can overwrite
-   * `config.nonce` (e.g. an explicit `nonce: undefined`) — the parent
-   * message bus still validates against the nonce it originally
-   * injected, so the pinned value must be restored, not lost.
+   * URL-supplied nonces held apart from `config`, because a later
+   * init() spread can overwrite `config.nonce`/`config.restNonce`
+   * (e.g. an explicit `nonce: undefined`).
+   * - `pinnedUrlNonce`: the bus nonce injected via URL is pinned for
+   *   the document's lifetime — the parent message bus keeps
+   *   validating against the value it originally injected.
+   * - `lastGoodNonce` / `lastGoodRestNonce`: last resolved value of
+   *   each rotatable credential, restored only when a re-init leaves
+   *   the field empty.
    */
   let pinnedUrlNonce = null;
-  let pinnedUrlRestNonce = null;
+  let lastGoodNonce = null;
+  let lastGoodRestNonce = null;
 
   /**
    * Event listeners registry
@@ -750,17 +755,16 @@
     beginThemeHold();
     config = { ...config, ...userConfig };
 
-    // Nonce resolution, in precedence order, on every init():
-    //   1. URL param — pinned for the document's lifetime (an iframe's
-    //      location cannot rotate mid-session). The pinned value is
-    //      restored over whatever the spread left behind, because the
-    //      parent message bus keeps validating against the nonce it
-    //      originally injected.
-    //   2. userConfig.nonce — explicit per-init author override (the
-    //      spread above already applied it).
-    //   3. iframe data attribute — re-read EVERY init: the host can
-    //      rotate data-nonce between inits, and the old
-    //      `|| config.nonce` fallback kept the first value forever.
+    // Nonce resolution on every init().
+    //
+    // Bus nonce: once injected via URL it is pinned for the document's
+    // lifetime — the parent message bus keeps validating against the
+    // value it originally injected, so neither an explicit override
+    // nor the iframe attribute may replace it. Otherwise:
+    // userConfig.nonce is a per-init override, and the iframe
+    // attribute is re-read EVERY init (the host can rotate data-nonce
+    // between inits — the old `|| config.nonce` fallback kept the
+    // first value forever).
     const urlParams = new URLSearchParams(window.location.search);
     const iframe = window.frameElement;
 
@@ -770,26 +774,31 @@
     }
     if (pinnedUrlNonce) {
       config.nonce = pinnedUrlNonce;
-    } else if (iframe && !(userConfig && userConfig.nonce)) {
-      const attrNonce = iframe.getAttribute("data-nonce");
-      if (attrNonce) {
-        config.nonce = attrNonce;
-      }
+    } else if (userConfig && userConfig.nonce) {
+      lastGoodNonce = userConfig.nonce;
+    } else if (iframe && iframe.getAttribute("data-nonce")) {
+      config.nonce = iframe.getAttribute("data-nonce");
+      lastGoodNonce = config.nonce;
+    } else if (!config.nonce && lastGoodNonce) {
+      config.nonce = lastGoodNonce;
     }
 
-    // wp_rest nonce for standalone REST calls (separate param - the bus
-    // nonce above is a different action and fails X-WP-Nonce checks).
+    // wp_rest nonce for standalone REST calls (separate action - the
+    // bus nonce fails X-WP-Nonce). NOT bus-bound: the host can rotate
+    // it, so the freshest source wins — URL param > per-init explicit
+    // > rotated attribute — and a spread of `restNonce: undefined`
+    // falls back to the last resolved value.
     const urlRestNonce = urlParams.get("_fleekdash_rest_nonce");
     if (urlRestNonce) {
-      pinnedUrlRestNonce = urlRestNonce;
-    }
-    if (pinnedUrlRestNonce) {
-      config.restNonce = pinnedUrlRestNonce;
-    } else if (iframe && !(userConfig && userConfig.restNonce)) {
-      const attrRestNonce = iframe.getAttribute("data-rest-nonce");
-      if (attrRestNonce) {
-        config.restNonce = attrRestNonce;
-      }
+      config.restNonce = urlRestNonce;
+      lastGoodRestNonce = urlRestNonce;
+    } else if (userConfig && userConfig.restNonce) {
+      lastGoodRestNonce = userConfig.restNonce;
+    } else if (iframe && iframe.getAttribute("data-rest-nonce")) {
+      config.restNonce = iframe.getAttribute("data-rest-nonce");
+      lastGoodRestNonce = config.restNonce;
+    } else if (!config.restNonce && lastGoodRestNonce) {
+      config.restNonce = lastGoodRestNonce;
     }
 
     applyIntegrationContentPadding(iframe);
