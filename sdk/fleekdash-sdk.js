@@ -522,7 +522,7 @@
    */
   /**
    * Resolve the nonce for standalone REST calls. The MessageBus nonce
-   * (`_fleekdash_nonce`) authenticates postMessage traffic only — it is NOT a
+   * (`_fleekdash_nonce`) authenticates postMessage traffic only - it is NOT a
    * wp_rest nonce and cannot satisfy X-WP-Nonce. The host injects a real
    * wp_rest nonce as `_fleekdash_rest_nonce` (or the iframe `data-rest-nonce`
    * attribute); when absent we fall back so manually supplied wp_rest nonces
@@ -742,13 +742,11 @@
 
     // Get nonce from URL query parameter (passed by FleekDash)
     const urlParams = new URLSearchParams(window.location.search);
-    config.nonce = urlParams.get("_fleekdash_nonce");
-    // wp_rest nonce for standalone REST calls (separate param — the bus
+    config.nonce = urlParams.get("_fleekdash_nonce") || config.nonce;
+    // wp_rest nonce for standalone REST calls (separate param - the bus
     // nonce above is a different action and fails X-WP-Nonce checks).
-    const urlRestNonce = urlParams.get("_fleekdash_rest_nonce");
-    if (urlRestNonce) {
-      config.restNonce = urlRestNonce;
-    }
+    config.restNonce =
+      urlParams.get("_fleekdash_rest_nonce") || config.restNonce;
 
     const iframe = window.frameElement;
 
@@ -794,7 +792,7 @@
     if (config.deferReady) {
       if (config.debug) {
         console.log(
-          "[FleekDashSDK] Ready deferred — call FleekDashSDK.reportReady() when your UI is mounted",
+          "[FleekDashSDK] Ready deferred - call FleekDashSDK.reportReady() when your UI is mounted",
         );
       }
       if (!initialTheme) {
