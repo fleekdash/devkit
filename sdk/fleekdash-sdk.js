@@ -294,17 +294,11 @@
   };
 
   /**
-   * URL-supplied nonces held apart from `config`, because a later
-   * init() spread can overwrite `config.nonce`/`config.restNonce`
-   * (e.g. an explicit `nonce: undefined`).
-   * - `pinnedUrlNonce`: the bus nonce injected via URL is pinned for
-   *   the document's lifetime — the parent message bus keeps
-   *   validating against the value it originally injected.
-   * - `lastGoodNonce` / `lastGoodRestNonce`: last resolved value of
-   *   each rotatable credential, restored only when a re-init leaves
-   *   the field empty.
+   * Last resolved nonce values, held apart from `config` because a
+   * later init() spread can overwrite `config.nonce`/`config.restNonce`
+   * (e.g. an explicit `nonce: undefined`). Restored only when a re-init
+   * leaves the field empty — never to mask a fresher source.
    */
-  let pinnedUrlNonce = null;
   let lastGoodNonce = null;
   let lastGoodRestNonce = null;
 
@@ -755,48 +749,42 @@
     beginThemeHold();
     config = { ...config, ...userConfig };
 
-    // Nonce resolution on every init().
-    //
-    // Bus nonce: once injected via URL it is pinned for the document's
-    // lifetime — the parent message bus keeps validating against the
-    // value it originally injected, so neither an explicit override
-    // nor the iframe attribute may replace it. Otherwise:
-    // userConfig.nonce is a per-init override, and the iframe
-    // attribute is re-read EVERY init (the host can rotate data-nonce
-    // between inits — the old `|| config.nonce` fallback kept the
-    // first value forever).
+    // Nonce resolution, in precedence order, on every init():
+    //   1. userConfig.* — explicit per-init override.
+    //   2. iframe data attribute — the live credential, re-read EVERY
+    //      init because the host can rotate it between inits (the old
+    //      `|| config.nonce` fallback kept the first value forever).
+    //   3. URL param — the bootstrap seed; the iframe location cannot
+    //      change post-load, so a param can go stale once the host
+    //      rotates the attribute (fleekdash/fleekdash#488).
+    //   4. last resolved value — restores the credential only when a
+    //      spread left the field empty (e.g. `nonce: undefined`).
     const urlParams = new URLSearchParams(window.location.search);
     const iframe = window.frameElement;
 
-    const urlNonce = urlParams.get("_fleekdash_nonce");
-    if (urlNonce) {
-      pinnedUrlNonce = urlNonce;
-    }
-    if (pinnedUrlNonce) {
-      config.nonce = pinnedUrlNonce;
-    } else if (userConfig && userConfig.nonce) {
-      lastGoodNonce = userConfig.nonce;
-    } else if (iframe && iframe.getAttribute("data-nonce")) {
-      config.nonce = iframe.getAttribute("data-nonce");
-      lastGoodNonce = config.nonce;
+    const nonceCandidate =
+      (userConfig && userConfig.nonce) ||
+      (iframe && iframe.getAttribute("data-nonce")) ||
+      urlParams.get("_fleekdash_nonce") ||
+      null;
+    if (nonceCandidate) {
+      config.nonce = nonceCandidate;
+      lastGoodNonce = nonceCandidate;
     } else if (!config.nonce && lastGoodNonce) {
       config.nonce = lastGoodNonce;
     }
 
     // wp_rest nonce for standalone REST calls (separate action - the
-    // bus nonce fails X-WP-Nonce). NOT bus-bound: the host can rotate
-    // it, so the freshest source wins — URL param > per-init explicit
-    // > rotated attribute — and a spread of `restNonce: undefined`
-    // falls back to the last resolved value.
-    const urlRestNonce = urlParams.get("_fleekdash_rest_nonce");
-    if (urlRestNonce) {
-      config.restNonce = urlRestNonce;
-      lastGoodRestNonce = urlRestNonce;
-    } else if (userConfig && userConfig.restNonce) {
-      lastGoodRestNonce = userConfig.restNonce;
-    } else if (iframe && iframe.getAttribute("data-rest-nonce")) {
-      config.restNonce = iframe.getAttribute("data-rest-nonce");
-      lastGoodRestNonce = config.restNonce;
+    // bus nonce fails X-WP-Nonce checks). Same precedence: the REST
+    // nonce also rotates on the host, so the attribute must refresh it.
+    const restNonceCandidate =
+      (userConfig && userConfig.restNonce) ||
+      (iframe && iframe.getAttribute("data-rest-nonce")) ||
+      urlParams.get("_fleekdash_rest_nonce") ||
+      null;
+    if (restNonceCandidate) {
+      config.restNonce = restNonceCandidate;
+      lastGoodRestNonce = restNonceCandidate;
     } else if (!config.restNonce && lastGoodRestNonce) {
       config.restNonce = lastGoodRestNonce;
     }
