@@ -11,4 +11,6 @@ note below.
 
 Current copy: SDK v1.1.0 (FleekDash 2.6.7.x) + standalone `restNonce`
 (`_fleekdash_rest_nonce` URL param / `data-rest-nonce` attribute), from
-fleekdash/fleekdash#483.
+fleekdash/fleekdash#483, plus nonce-provenance re-init (rotated iframe
+`data-nonce`/`data-rest-nonce` attrs are re-read on every `init()`),
+from fleekdash/fleekdash#510 (issue #488).

@@ -294,6 +294,17 @@
   };
 
   /**
+   * Nonce provenance — where the currently held nonces came from.
+   * 'url' pins the value for the document's lifetime (an iframe's
+   * location cannot rotate mid-session); 'explicit' marks a value the
+   * caller passed in the last init(); 'attr' marks a value read from
+   * the iframe data-* attribute, which the host CAN rotate between
+   * inits and must therefore be re-read.
+   */
+  let nonceSource = null;
+  let restNonceSource = null;
+
+  /**
    * Event listeners registry
    */
   const eventListeners = new Map();
@@ -740,22 +751,50 @@
     beginThemeHold();
     config = { ...config, ...userConfig };
 
-    // Get nonce from URL query parameter (passed by FleekDash)
+    // Nonce resolution, in precedence order, on every init():
+    //   1. URL param — pinned for the document's lifetime (an iframe's
+    //      location cannot rotate mid-session).
+    //   2. userConfig.nonce — explicit per-init author override (the
+    //      spread above already applied it).
+    //   3. iframe data attribute — re-read EVERY init: the host can
+    //      rotate data-nonce between inits, and the old
+    //      `|| config.nonce` fallback kept the first value forever.
+    // A previously URL-sourced nonce survives re-inits without a URL
+    // param; attribute-sourced and never-set values refresh.
     const urlParams = new URLSearchParams(window.location.search);
-    config.nonce = urlParams.get("_fleekdash_nonce") || config.nonce;
-    // wp_rest nonce for standalone REST calls (separate param - the bus
-    // nonce above is a different action and fails X-WP-Nonce checks).
-    config.restNonce =
-      urlParams.get("_fleekdash_rest_nonce") || config.restNonce;
-
     const iframe = window.frameElement;
 
-    // Fallback: try from iframe data attribute
-    if (!config.nonce && iframe) {
-      config.nonce = iframe.getAttribute("data-nonce");
+    const urlNonce = urlParams.get("_fleekdash_nonce");
+    if (urlNonce) {
+      config.nonce = urlNonce;
+      nonceSource = "url";
+    } else if (userConfig && userConfig.nonce) {
+      nonceSource = "explicit";
+    } else if (iframe && (nonceSource !== "url" || !config.nonce)) {
+      // `|| !config.nonce`: a spread of `nonce: undefined` in userConfig
+      // can null even a URL-pinned value — recover from the attribute
+      // instead of shipping requests with no nonce at all.
+      const attrNonce = iframe.getAttribute("data-nonce");
+      if (attrNonce) {
+        config.nonce = attrNonce;
+        nonceSource = "attr";
+      }
     }
-    if (!config.restNonce && iframe) {
-      config.restNonce = iframe.getAttribute("data-rest-nonce");
+
+    // wp_rest nonce for standalone REST calls (separate param - the bus
+    // nonce above is a different action and fails X-WP-Nonce checks).
+    const urlRestNonce = urlParams.get("_fleekdash_rest_nonce");
+    if (urlRestNonce) {
+      config.restNonce = urlRestNonce;
+      restNonceSource = "url";
+    } else if (userConfig && userConfig.restNonce) {
+      restNonceSource = "explicit";
+    } else if (iframe && (restNonceSource !== "url" || !config.restNonce)) {
+      const attrRestNonce = iframe.getAttribute("data-rest-nonce");
+      if (attrRestNonce) {
+        config.restNonce = attrRestNonce;
+        restNonceSource = "attr";
+      }
     }
 
     applyIntegrationContentPadding(iframe);
