@@ -294,15 +294,14 @@
   };
 
   /**
-   * Nonce provenance — where the currently held nonces came from.
-   * 'url' pins the value for the document's lifetime (an iframe's
-   * location cannot rotate mid-session); 'explicit' marks a value the
-   * caller passed in the last init(); 'attr' marks a value read from
-   * the iframe data-* attribute, which the host CAN rotate between
-   * inits and must therefore be re-read.
+   * URL-supplied nonces, pinned for the document's lifetime. Kept apart
+   * from `config` because a later init() spread can overwrite
+   * `config.nonce` (e.g. an explicit `nonce: undefined`) — the parent
+   * message bus still validates against the nonce it originally
+   * injected, so the pinned value must be restored, not lost.
    */
-  let nonceSource = null;
-  let restNonceSource = null;
+  let pinnedUrlNonce = null;
+  let pinnedUrlRestNonce = null;
 
   /**
    * Event listeners registry
@@ -753,31 +752,28 @@
 
     // Nonce resolution, in precedence order, on every init():
     //   1. URL param — pinned for the document's lifetime (an iframe's
-    //      location cannot rotate mid-session).
+    //      location cannot rotate mid-session). The pinned value is
+    //      restored over whatever the spread left behind, because the
+    //      parent message bus keeps validating against the nonce it
+    //      originally injected.
     //   2. userConfig.nonce — explicit per-init author override (the
     //      spread above already applied it).
     //   3. iframe data attribute — re-read EVERY init: the host can
     //      rotate data-nonce between inits, and the old
     //      `|| config.nonce` fallback kept the first value forever.
-    // A previously URL-sourced nonce survives re-inits without a URL
-    // param; attribute-sourced and never-set values refresh.
     const urlParams = new URLSearchParams(window.location.search);
     const iframe = window.frameElement;
 
     const urlNonce = urlParams.get("_fleekdash_nonce");
     if (urlNonce) {
-      config.nonce = urlNonce;
-      nonceSource = "url";
-    } else if (userConfig && userConfig.nonce) {
-      nonceSource = "explicit";
-    } else if (iframe && (nonceSource !== "url" || !config.nonce)) {
-      // `|| !config.nonce`: a spread of `nonce: undefined` in userConfig
-      // can null even a URL-pinned value — recover from the attribute
-      // instead of shipping requests with no nonce at all.
+      pinnedUrlNonce = urlNonce;
+    }
+    if (pinnedUrlNonce) {
+      config.nonce = pinnedUrlNonce;
+    } else if (iframe && !(userConfig && userConfig.nonce)) {
       const attrNonce = iframe.getAttribute("data-nonce");
       if (attrNonce) {
         config.nonce = attrNonce;
-        nonceSource = "attr";
       }
     }
 
@@ -785,15 +781,14 @@
     // nonce above is a different action and fails X-WP-Nonce checks).
     const urlRestNonce = urlParams.get("_fleekdash_rest_nonce");
     if (urlRestNonce) {
-      config.restNonce = urlRestNonce;
-      restNonceSource = "url";
-    } else if (userConfig && userConfig.restNonce) {
-      restNonceSource = "explicit";
-    } else if (iframe && (restNonceSource !== "url" || !config.restNonce)) {
+      pinnedUrlRestNonce = urlRestNonce;
+    }
+    if (pinnedUrlRestNonce) {
+      config.restNonce = pinnedUrlRestNonce;
+    } else if (iframe && !(userConfig && userConfig.restNonce)) {
       const attrRestNonce = iframe.getAttribute("data-rest-nonce");
       if (attrRestNonce) {
         config.restNonce = attrRestNonce;
-        restNonceSource = "attr";
       }
     }
 
