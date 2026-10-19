@@ -91,16 +91,17 @@
         segs.length > 1 && (/^\d+$/.test(last) || /s$/.test(penultimate));
       const resource = hasIdTail ? penultimate : last;
       const key = resource ? singularize(resource) : "";
+      const mutationId = hasIdTail && /^\d+$/.test(last) ? Number(last) : last;
 
       if (method === "DELETE") {
         return isCore
-          ? { deleted: true, previous: { id: hasIdTail ? last : null } }
-          : { success: true, deleted: hasIdTail ? last : true };
+          ? { deleted: true, previous: { id: hasIdTail ? mutationId : null } }
+          : { success: true, deleted: hasIdTail ? mutationId : true };
       }
       const body = reqData?.body || {};
       const entity = {
         ...(data.mockMutations?.[key] || {}),
-        id: hasIdTail ? last : Date.now() % 1000000,
+        id: hasIdTail ? mutationId : Date.now() % 1000000,
         ...body,
       };
       return isCore ? entity : { success: true, [key]: entity };
