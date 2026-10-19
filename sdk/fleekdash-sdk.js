@@ -745,7 +745,10 @@
     config.nonce = urlParams.get("_fleekdash_nonce");
     // wp_rest nonce for standalone REST calls (separate param — the bus
     // nonce above is a different action and fails X-WP-Nonce checks).
-    config.restNonce = urlParams.get("_fleekdash_rest_nonce");
+    const urlRestNonce = urlParams.get("_fleekdash_rest_nonce");
+    if (urlRestNonce) {
+      config.restNonce = urlRestNonce;
+    }
 
     const iframe = window.frameElement;
 
