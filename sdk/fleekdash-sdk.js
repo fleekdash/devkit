@@ -1079,9 +1079,7 @@
    */
   function getWordPressData(endpoint, params = {}, signal) {
     if (signal?.aborted) {
-      return Promise.reject(
-        signal.reason ?? new DOMException("Aborted", "AbortError"),
-      );
+      return Promise.reject(abortError(signal));
     }
     if (!isFleekDashEmbedded()) {
       return fetchWordPressDataStandalone(endpoint, params, signal);
@@ -1090,17 +1088,30 @@
     if (!signal) {
       return request;
     }
-    return Promise.race([
-      request,
-      new Promise((resolve, reject) => {
-        signal.addEventListener(
-          "abort",
-          () =>
-            reject(signal.reason ?? new DOMException("Aborted", "AbortError")),
-          { once: true },
-        );
-      }),
-    ]);
+    let onAbort;
+    const aborted = new Promise((resolve, reject) => {
+      onAbort = () => reject(abortError(signal));
+      signal.addEventListener("abort", onAbort, { once: true });
+    });
+    return Promise.race([request, aborted]).finally(() =>
+      signal.removeEventListener("abort", onAbort),
+    );
+  }
+
+  /**
+   * AbortError for settled-signal rejections - resolved through window so
+   * the SDK never touches a bare global (same convention as the rest of
+   * the file). `signal.reason` already carries the browser's DOMException
+   * whenever the controller aborted; the fallback covers exotic signals.
+   */
+  function abortError(signal) {
+    if (signal.reason) {
+      return signal.reason;
+    }
+    const w = window;
+    return typeof w.DOMException === "function"
+      ? new w.DOMException("Aborted", "AbortError")
+      : Object.assign(new w.Error("Aborted"), { name: "AbortError" });
   }
 
   /**
