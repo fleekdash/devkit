@@ -551,18 +551,23 @@
       return null;
     }
     const params = new URLSearchParams(window.location.search);
-    return (
-      config.restNonce ||
-      params.get("_fleekdash_rest_nonce") ||
-      config.nonce ||
-      params.get("_fleekdash_nonce")
-    );
+    const restSeed = config.restNonce || params.get("_fleekdash_rest_nonce");
+    if (restSeed) {
+      return restSeed;
+    }
+    if (nonceSource === "explicit" && !config.nonce) {
+      // Same pin as restNonce: an explicitly cleared bus nonce must not be
+      // resurrected from the URL seed - it would send the stale value as
+      // X-WP-Nonce after the caller asked for it cleared.
+      return null;
+    }
+    return config.nonce || params.get("_fleekdash_nonce");
   }
 
   /**
    * Fetch WordPress REST data when the page is opened outside FleekDash (no MessageBus).
    */
-  async function fetchWordPressDataStandalone(endpoint, params = {}) {
+  async function fetchWordPressDataStandalone(endpoint, params = {}, signal) {
     const nonce = resolveStandaloneRestNonce();
 
     if (!nonce) {
@@ -588,6 +593,7 @@
         Accept: "application/json",
         "X-WP-Nonce": nonce,
       },
+      signal,
     });
 
     if (!response.ok) {
@@ -1066,13 +1072,35 @@
    *
    * @param {string} endpoint - WordPress REST endpoint
    * @param {Object} params - Query parameters
+   * @param {AbortSignal} [signal] - aborts the fetch standalone; embedded
+   *   mode rejects the local promise on abort (the in-flight host request
+   *   is not cancellable over postMessage, it just stops being awaited)
    * @returns {Promise<any>} WordPress data
    */
-  function getWordPressData(endpoint, params = {}) {
-    if (!isFleekDashEmbedded()) {
-      return fetchWordPressDataStandalone(endpoint, params);
+  function getWordPressData(endpoint, params = {}, signal) {
+    if (signal?.aborted) {
+      return Promise.reject(
+        signal.reason ?? new DOMException("Aborted", "AbortError"),
+      );
     }
-    return sendMessage("WP_DATA_REQUEST", { endpoint, params });
+    if (!isFleekDashEmbedded()) {
+      return fetchWordPressDataStandalone(endpoint, params, signal);
+    }
+    const request = sendMessage("WP_DATA_REQUEST", { endpoint, params });
+    if (!signal) {
+      return request;
+    }
+    return Promise.race([
+      request,
+      new Promise((resolve, reject) => {
+        signal.addEventListener(
+          "abort",
+          () =>
+            reject(signal.reason ?? new DOMException("Aborted", "AbortError")),
+          { once: true },
+        );
+      }),
+    ]);
   }
 
   /**

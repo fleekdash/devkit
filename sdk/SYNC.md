@@ -20,3 +20,9 @@ credential) is re-read on every call; otherwise the URL param seeds the
 value and can go stale after an attribute rotation; a last-good store
 restores the most recent resolved value when the live source
 disappears or a spread wipes the field.
+
+Plus from fleekdash/fleekdash#546: `getWordPressData` honours an
+AbortSignal (fetch signal standalone, local promise rejection when
+embedded), and an explicitly cleared bus nonce (`init({nonce: null})`)
+can no longer be resurrected by the `_fleekdash_nonce` URL seed as
+X-WP-Nonce.
